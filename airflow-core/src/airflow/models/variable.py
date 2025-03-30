@@ -202,8 +202,16 @@ class Variable(Base, LoggingMixin):
         else:
             stored_value = str(value)
 
-        Variable.delete(key, session=session)
-        session.add(Variable(key=key, val=stored_value, description=description))
+        # If the variable for the key exists, update it
+        # Otherwise, insert a new variable
+        var_value = session.query(Variable).filter(Variable.key == key).first()
+        if var_value:
+            var_value.val = stored_value
+            if description is not None:
+                var_value.description = description
+        else:
+            session.add(Variable(key=key, val=stored_value, description=description))
+
         session.flush()
         # invalidate key in cache for faster propagation
         # we cannot save the value set because it's possible that it's shadowed by a custom backend
